@@ -10,7 +10,7 @@ import (
 
 func wrkRun(thread, duration, connection, rqps int, url string, scriptLua string) []byte {
 
-	out, err := exec.Command("wrk", "-t"+strconv.Itoa(thread), "-d"+strconv.Itoa(duration)+"s", "-c"+strconv.Itoa(connection), "-R"+strconv.Itoa(rqps), "-s", scriptLua, url, url).Output()
+	out, err := exec.Command("wrk", "-t"+strconv.Itoa(thread), "-d"+strconv.Itoa(duration)+"s", "-c"+strconv.Itoa(connection), "-R"+strconv.Itoa(rqps), "-s", scriptLua, url).Output()
 	if err != nil {
 		log.Fatal(err)
 	}
