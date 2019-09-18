@@ -29,7 +29,7 @@ func main() {
 	connection := 10
 	rqps := 10
 	url := "https://gmail.com:443"
-	scriptLua := "/Users/sakomammadov/fullspeed/layer5io/wrk2/scripts/multiple-endpoints_in_json.lua"
+	scriptLua := "/scripts/multiple-endpoints_in_json.lua"
 	result := wrkRun(thread, duration, connection, rqps, url, scriptLua)
 	fmt.Printf(string(result))
 
