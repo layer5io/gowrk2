@@ -49,7 +49,7 @@ func WRKRun(config *GoWRK2Config) (*GoWRK2, error) {
 	out, err := exec.Command("wrk", "-t"+strconv.Itoa(config.Thread), "-d"+strconv.FormatFloat(config.DurationInSeconds, 'f', -1, 64)+"s", "-R"+strconv.FormatFloat(config.RQPS, 'f', -1, 64),
 		"-s", scriptLua, config.URL).Output()
 	if err != nil {
-		err = errors.Wrapf(err, "unable to execute the requsted command")
+		err = errors.Wrapf(err, "unable to execute the requested command")
 		logrus.Error(err)
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func WRKRun(config *GoWRK2Config) (*GoWRK2, error) {
 	in := []byte(out)
 	var raw *GoWRK2
 	if err := json.Unmarshal(in, &raw); err != nil {
-		err = errors.Wrapf(err, "unable to marshal the result to a map")
+		err = errors.Wrapf(err, "unable to marshal the result")
 		logrus.Error(err)
 		return nil, err
 	}
