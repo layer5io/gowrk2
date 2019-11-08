@@ -38,14 +38,15 @@ type PercentileInfo struct {
 }
 
 type GoWRK2Config struct {
-	Thread, DurationInSeconds, Connection, RQPS int
-	URL, Labels                                 string
-	Percentiles                                 []float64
+	Thread, Connection, RQPS int
+	DurationInSeconds        float64
+	URL, Labels              string
+	Percentiles              []float64
 }
 
 func WRKRun(config *GoWRK2Config) (*GoWRK2, error) {
 	scriptLua := "./wrk2/scripts/multiple-endpoints_in_json.lua"
-	out, err := exec.Command("wrk", "-t"+strconv.Itoa(config.Thread), "-d"+strconv.Itoa(config.DurationInSeconds)+"s", "-c"+strconv.Itoa(config.Connection), "-R"+strconv.Itoa(config.RQPS),
+	out, err := exec.Command("wrk", "-t"+strconv.Itoa(config.Thread), "-d"+strconv.FormatFloat(config.DurationInSeconds, 'f', -1, 64)+"s", "-c"+strconv.Itoa(config.Connection), "-R"+strconv.Itoa(config.RQPS),
 		"-s", scriptLua, config.URL).Output()
 	if err != nil {
 		err = errors.Wrapf(err, "unable to execute the requsted command")
