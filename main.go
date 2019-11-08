@@ -11,11 +11,11 @@ func main() {
 	config := &api.GoWRK2Config{
 		Thread:            2,
 		DurationInSeconds: 5,
-		Connection:        10,
-		RQPS:              10,
-		URL:               "https://gmail.com:443",
-		Percentiles:       []float64{50, 75, 90, 99, 99.99, 99.999},
-		Labels:            "",
+		// Connection:        10,
+		RQPS:        10,
+		URL:         "https://gmail.com:443",
+		Percentiles: []float64{50, 75, 90, 99, 99.99, 99.999},
+		Labels:      "",
 	}
 	result, _ := api.WRKRun(config)
 	logrus.Infof("WRK Result: %+v", result)
