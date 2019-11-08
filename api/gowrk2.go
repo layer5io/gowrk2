@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os/exec"
 	"strconv"
 
@@ -45,11 +46,27 @@ type GoWRK2Config struct {
 }
 
 func WRKRun(config *GoWRK2Config) (*GoWRK2, error) {
+
+	rURLI, _ := url.Parse(config.URL)
+	if !rURLI.IsAbs() {
+		err := fmt.Errorf("given URL (%s) is not a valid URL", config.URL)
+		logrus.Error(err)
+		return nil, err
+	}
+
+	if rURLI.Port() == "" {
+		if rURLI.Scheme == "https" {
+			rURLI.Host += ":443"
+		} else {
+			rURLI.Host += ":80"
+		}
+	}
+
 	scriptLua := "./wrk2/scripts/multiple-endpoints_in_json.lua"
 	args := []string{"-t" + strconv.Itoa(config.Thread),
 		"-d" + strconv.FormatFloat(config.DurationInSeconds, 'f', -1, 64) + "s",
 		"-R" + strconv.FormatFloat(config.RQPS, 'f', -1, 64),
-		"-s", scriptLua, config.URL}
+		"-s", scriptLua, rURLI.String()}
 	logrus.Debugf("received command: wrk %v", args)
 	out, err := exec.Command("wrk", args...).Output()
 	if err != nil {
