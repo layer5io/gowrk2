@@ -37,10 +37,16 @@ type PercentileInfo struct {
 	Value   float64 `json:"Value"`
 }
 
-func WRKRun(thread, duration, connection, rqps int, url string) (*GoWRK2, error) {
+type GoWRK2Config struct {
+	Thread, Duration, Connection, RQPS int
+	URL, Labels                        string
+	Percentiles                        []float64
+}
+
+func WRKRun(config *GoWRK2Config) (*GoWRK2, error) {
 	scriptLua := "./wrk2/scripts/multiple-endpoints_in_json.lua"
-	out, err := exec.Command("wrk", "-t"+strconv.Itoa(thread), "-d"+strconv.Itoa(duration)+"s", "-c"+strconv.Itoa(connection), "-R"+strconv.Itoa(rqps),
-		"-s", scriptLua, url).Output()
+	out, err := exec.Command("wrk", "-t"+strconv.Itoa(config.Thread), "-d"+strconv.Itoa(config.Duration)+"s", "-c"+strconv.Itoa(config.Connection), "-R"+strconv.Itoa(config.RQPS),
+		"-s", scriptLua, config.URL).Output()
 	if err != nil {
 		err = errors.Wrapf(err, "unable to execute the requsted command")
 		logrus.Error(err)
@@ -57,7 +63,7 @@ func WRKRun(thread, duration, connection, rqps int, url string) (*GoWRK2, error)
 	return raw, nil
 }
 
-func TransformWRKToFortio(gowrk *GoWRK2) (*fhttp.HTTPRunnerResults, error) {
+func TransformWRKToFortio(gowrk *GoWRK2, config *GoWRK2Config) (*fhttp.HTTPRunnerResults, error) {
 	if gowrk != nil {
 		dur, err := time.ParseDuration(fmt.Sprintf("%fus", gowrk.DurationInMicroseconds))
 		if err != nil {
@@ -71,6 +77,8 @@ func TransformWRKToFortio(gowrk *GoWRK2) (*fhttp.HTTPRunnerResults, error) {
 			// we dont intend to support multiple URLs at the moment
 			URL: gowrk.URL0,
 			RunnerResults: periodic.RunnerResults{
+				Labels:         config.Labels,
+				RunType:        "HTTP",
 				ActualDuration: dur,
 				ActualQPS:      gowrk.RequestsPerSec,
 				DurationHistogram: &stats.HistogramData{
@@ -85,11 +93,14 @@ func TransformWRKToFortio(gowrk *GoWRK2) (*fhttp.HTTPRunnerResults, error) {
 		var countTrkr int64
 		var windowTrkr float64
 		for _, p := range gowrk.Percentiles {
-			result.DurationHistogram.Percentiles = append(result.DurationHistogram.Percentiles, stats.Percentile{
-				Value:      p.Value,
-				Percentile: p.Percent,
-			})
-
+			for _, pr := range config.Percentiles {
+				if p.Percent == pr {
+					result.DurationHistogram.Percentiles = append(result.DurationHistogram.Percentiles, stats.Percentile{
+						Value:      p.Value,
+						Percentile: p.Percent,
+					})
+				}
+			}
 			result.DurationHistogram.Data = append(result.DurationHistogram.Data, stats.Bucket{
 				Count:   p.Count - countTrkr,
 				Percent: p.Percent,
