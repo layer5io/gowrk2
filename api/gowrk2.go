@@ -46,8 +46,12 @@ type GoWRK2Config struct {
 
 func WRKRun(config *GoWRK2Config) (*GoWRK2, error) {
 	scriptLua := "./wrk2/scripts/multiple-endpoints_in_json.lua"
-	out, err := exec.Command("wrk", "-t"+strconv.Itoa(config.Thread), "-d"+strconv.FormatFloat(config.DurationInSeconds, 'f', -1, 64)+"s", "-R"+strconv.FormatFloat(config.RQPS, 'f', -1, 64),
-		"-s", scriptLua, config.URL).Output()
+	args := []string{"-t" + strconv.Itoa(config.Thread),
+		"-d" + strconv.FormatFloat(config.DurationInSeconds, 'f', -1, 64) + "s",
+		"-R" + strconv.FormatFloat(config.RQPS, 'f', -1, 64),
+		"-s", scriptLua, config.URL}
+	logrus.Debugf("received command: wrk %v", args)
+	out, err := exec.Command("wrk", args...).Output()
 	if err != nil {
 		err = errors.Wrapf(err, "unable to execute the requested command")
 		logrus.Error(err)
