@@ -75,10 +75,11 @@ func WRKRun(config *GoWRK2Config) (*GoWRK2, error) {
 		logrus.Error(err)
 		return nil, err
 	}
-	logrus.Debugf("Received output: %s", out)
+
 	retryCount := 0
 
 RETRY:
+	logrus.Debugf("Received output: %s", out)
 	var raw *GoWRK2
 	if err := json.Unmarshal(out, &raw); err != nil {
 		err = errors.Wrapf(err, "unable to marshal the result")
