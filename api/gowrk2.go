@@ -86,8 +86,12 @@ RETRY:
 		if retryCount <= 1 {
 			logrus.Debugf("starting with bytes: %s", out)
 			in := string(out)
-			ind := strings.Index(in, "\\n")
+			ind := strings.Index(in, `\n`)
 			logrus.Debugf("index of the first new line: %d", ind)
+			if ind == -1 {
+				ind = strings.Index(in, `\\n`)
+				logrus.Debugf("index of the first new line: %d", ind)
+			}
 			if ind > -1 && ind+1 < len(in) {
 				logrus.Debug("there was an unmarshal error, retrying with a tiny change")
 				in = in[ind+1:]
