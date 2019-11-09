@@ -88,7 +88,7 @@ RETRY:
 		if retryCount <= 1 {
 			in := string(out)
 			ind := strings.Index(in, "\\n")
-			if ind > -1 {
+			if ind > -1 && ind+1 < len(in) {
 				in = in[ind+1:]
 				out = []byte(in)
 				goto RETRY
