@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os/exec"
 	"strconv"
+	"strings"
 
 	"time"
 
@@ -75,11 +76,23 @@ func WRKRun(config *GoWRK2Config) (*GoWRK2, error) {
 		return nil, err
 	}
 	logrus.Debugf("Received output: %s", out)
-	in := []byte(out)
+	retryCount := 0
+
+RETRY:
 	var raw *GoWRK2
-	if err := json.Unmarshal(in, &raw); err != nil {
+	if err := json.Unmarshal(out, &raw); err != nil {
 		err = errors.Wrapf(err, "unable to marshal the result")
 		logrus.Error(err)
+		retryCount++
+		if retryCount <= 1 {
+			in := string(out)
+			ind := strings.Index(in, "\\n")
+			if ind > -1 {
+				in = in[ind+1:]
+				out = []byte(in)
+				goto RETRY
+			}
+		}
 		return nil, err
 	}
 	return raw, nil
