@@ -8,4 +8,4 @@ docker-build-base:
 docker-run:
 	docker rm -f gowrk2 || true
 	docker volume prune -f
-	docker run --rm --name gowrk2 -it -v `pwd`:/github.com/layer5io/gowrk2 --workdir=/github.com/layer5io/gowrk2 wrk2 go run main.go
+	docker run --rm --name gowrk2 -it -v `pwd`:/github.com/layer5io/gowrk2 --workdir=/github.com/layer5io/gowrk2 -e WRK_LOCATION=wrk wrk2 go run main.go

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -18,6 +19,10 @@ import (
 )
 
 type GoWRK2 struct {
+	RequestedDuration string    `json:"RequestedDuration,omitempty"`
+	RequestedQPS      string    `json:"RequestedQPS,omitempty"`
+	StartTime         time.Time `json:"StartTime,omitempty"`
+
 	TotalRequests          int64            `json:"TotalRequests"`
 	DurationInMicroseconds float64          `json:"DurationInMicroseconds"`
 	Bytes                  int64            `json:"Bytes"`
@@ -47,7 +52,11 @@ type GoWRK2Config struct {
 }
 
 func WRKRun(config *GoWRK2Config) (*GoWRK2, error) {
-
+	wrkLoc := "./wrk2/wrk"
+	wrkLocFromEnv := os.Getenv("WRK_LOCATION")
+	if wrkLocFromEnv != "" {
+		wrkLoc = wrkLocFromEnv
+	}
 	rURLI, _ := url.Parse(config.URL)
 	if !rURLI.IsAbs() {
 		err := fmt.Errorf("given URL (%s) is not a valid URL", config.URL)
@@ -62,14 +71,19 @@ func WRKRun(config *GoWRK2Config) (*GoWRK2, error) {
 			rURLI.Host += ":80"
 		}
 	}
-
+	dur := strconv.FormatFloat(config.DurationInSeconds, 'f', -1, 64)
 	scriptLua := "./wrk2/scripts/multiple-endpoints_in_json.lua"
 	args := []string{"-t" + strconv.Itoa(config.Thread),
-		"-d" + strconv.FormatFloat(config.DurationInSeconds, 'f', -1, 64) + "s",
+		"-d" + dur + "s",
 		"-R" + strconv.FormatFloat(config.RQPS, 'f', -1, 64),
 		"-s", scriptLua, rURLI.String()}
 	logrus.Debugf("received command: wrk %v", args)
-	out, err := exec.Command("wrk", args...).Output()
+
+	var startTime time.Time
+	go func() {
+		startTime = time.Now()
+	}()
+	out, err := exec.Command(wrkLoc, args...).Output()
 	if err != nil {
 		err = errors.Wrapf(err, "unable to execute the requested command")
 		logrus.Error(err)
@@ -101,6 +115,11 @@ RETRY:
 			return nil, err
 		}
 	}
+
+	raw.StartTime = startTime
+	raw.RequestedDuration = dur + "s"
+	raw.RequestedQPS = fmt.Sprintf("%f", config.RQPS)
+
 	return raw, nil
 }
 
@@ -118,40 +137,46 @@ func TransformWRKToFortio(gowrk *GoWRK2, config *GoWRK2Config) (*fhttp.HTTPRunne
 			// we dont intend to support multiple URLs at the moment
 			URL: gowrk.URL0,
 			RunnerResults: periodic.RunnerResults{
-				Labels:         config.Labels,
-				RunType:        "HTTP",
-				ActualDuration: dur,
-				ActualQPS:      gowrk.RequestsPerSec,
+				StartTime:         gowrk.StartTime,
+				RequestedQPS:      gowrk.RequestedQPS,
+				RequestedDuration: gowrk.RequestedDuration,
+				NumThreads:        config.Thread,
+				Labels:            config.Labels,
+				RunType:           "HTTP",
+				ActualDuration:    dur,
+				ActualQPS:         gowrk.RequestsPerSec,
 				DurationHistogram: &stats.HistogramData{
-					Avg:   gowrk.AvgLatency / 1000,
-					Min:   gowrk.MinLatency / 1000,
-					Max:   gowrk.MaxLatency / 1000,
-					Count: gowrk.TotalRequests,
+					Avg:    gowrk.AvgLatency / 1000000,
+					Min:    gowrk.MinLatency / 1000000,
+					Max:    gowrk.MaxLatency / 1000000,
+					Count:  gowrk.TotalRequests,
+					StdDev: gowrk.StdDev / 1000000,
 				},
 			},
 		}
 
-		var countTrkr int64
+		// var countTrkr int64
 		var windowTrkr float64
 		for _, p := range gowrk.Percentiles {
 			for _, pr := range config.Percentiles {
 				if p.Percent == pr {
 					result.DurationHistogram.Percentiles = append(result.DurationHistogram.Percentiles, stats.Percentile{
-						Value:      p.Value,
+						Value:      p.Value / 1000,
 						Percentile: p.Percent,
 					})
 				}
 			}
 			result.DurationHistogram.Data = append(result.DurationHistogram.Data, stats.Bucket{
-				Count:   p.Count - countTrkr,
+				// Count:   p.Count - countTrkr,
+				Count:   p.Count,
 				Percent: p.Percent,
 				Interval: stats.Interval{
 					Start: windowTrkr,
-					End:   p.Value,
+					End:   p.Value / 1000,
 				},
 			})
-			countTrkr = p.Count
-			windowTrkr = p.Value
+			// countTrkr = p.Count
+			windowTrkr = p.Value / 1000
 		}
 
 		return result, nil
