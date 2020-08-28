@@ -1,5 +1,5 @@
 get-wrk:
-	git clone git@github.com:layer5io/wrk2.git
+	git clone https://github.com/layer5io/wrk2.git
 
 docker-build-base:
 	docker image prune -f
