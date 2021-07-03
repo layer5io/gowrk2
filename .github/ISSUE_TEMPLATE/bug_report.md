@@ -34,6 +34,4 @@ Steps to reproduce the behavior:
 
 ---
 **Contributor Resources**
-
-The layer5.io website uses Gatsby, React, and GitHub Pages. Site content is found under the [`master` branch](https://github.com/layer5io/layer5/tree/master).
 - See [contributing instructions](https://github.com/layer5io/layer5/blob/master/CONTRIBUTING.md)
