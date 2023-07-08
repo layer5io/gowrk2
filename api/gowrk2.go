@@ -135,7 +135,6 @@ func TransformWRKToFortio(gowrk *GoWRK2, config *GoWRK2Config) (*fhttp.HTTPRunne
 
 		result := &fhttp.HTTPRunnerResults{
 			// we dont intend to support multiple URLs at the moment
-			URL: gowrk.URL0,
 			RunnerResults: periodic.RunnerResults{
 				StartTime:         gowrk.StartTime,
 				RequestedQPS:      gowrk.RequestedQPS,
@@ -153,6 +152,10 @@ func TransformWRKToFortio(gowrk *GoWRK2, config *GoWRK2Config) (*fhttp.HTTPRunne
 					StdDev: gowrk.StdDev / 1000000,
 				},
 			},
+		}
+
+		result.HTTPOptions = fhttp.HTTPOptions{
+			URL: gowrk.URL0,
 		}
 
 		// var countTrkr int64
