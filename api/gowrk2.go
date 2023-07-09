@@ -49,6 +49,7 @@ type GoWRK2Config struct {
 	DurationInSeconds, RQPS float64
 	URL, Labels             string
 	Percentiles             []float64
+	Args					[]string
 }
 
 func WRKRun(config *GoWRK2Config) (*GoWRK2, error) {
@@ -77,13 +78,14 @@ func WRKRun(config *GoWRK2Config) (*GoWRK2, error) {
 		"-d" + dur + "s",
 		"-R" + strconv.FormatFloat(config.RQPS, 'f', -1, 64),
 		"-s", scriptLua, rURLI.String()}
-	logrus.Debugf("received command: wrk %v", args)
+	config.Args = append(config.Args, args...)
+	logrus.Debugf("received command: wrk %v", config.Args)
 
 	var startTime time.Time
 	go func() {
 		startTime = time.Now()
 	}()
-	out, err := exec.Command(wrkLoc, args...).Output()
+	out, err := exec.Command(wrkLoc, config.Args...).Output()
 	if err != nil {
 		err = errors.Wrapf(err, "unable to execute the requested command")
 		logrus.Error(err)
